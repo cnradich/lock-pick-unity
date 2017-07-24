@@ -1,3 +1,8 @@
 Library/
 Temp/
 Development.lnk
+.vs/
+.editorconfig
+LockPick_Unity.sln
+LockPick_Unity.csproj
+LockPick_Unity.Editor.csproj
