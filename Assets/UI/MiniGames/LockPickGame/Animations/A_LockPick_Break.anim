@@ -31,7 +31,7 @@ AnimationClip:
       m_PreInfinity: 2
       m_PostInfinity: 2
       m_RotationOrder: 4
-    path: LockPickRotationAnchor/SM_LockPick
+    path: LockPickPositionAnchor/LockPickRotationAnchor/SM_LockPick
   m_PositionCurves: []
   m_ScaleCurves: []
   m_FloatCurves: []
@@ -44,7 +44,7 @@ AnimationClip:
   m_ClipBindingConstant:
     genericBindings:
     - serializedVersion: 2
-      path: 4166237536
+      path: 1461723474
       attribute: 4
       script: {fileID: 0}
       typeID: 4
@@ -85,7 +85,7 @@ AnimationClip:
       m_PostInfinity: 2
       m_RotationOrder: 4
     attribute: localEulerAnglesRaw.x
-    path: LockPickRotationAnchor/SM_LockPick
+    path: LockPickPositionAnchor/LockPickRotationAnchor/SM_LockPick
     classID: 4
     script: {fileID: 0}
   - curve:
@@ -107,7 +107,7 @@ AnimationClip:
       m_PostInfinity: 2
       m_RotationOrder: 4
     attribute: localEulerAnglesRaw.z
-    path: LockPickRotationAnchor/SM_LockPick
+    path: LockPickPositionAnchor/LockPickRotationAnchor/SM_LockPick
     classID: 4
     script: {fileID: 0}
   m_EulerEditorCurves: []

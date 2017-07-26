@@ -72,8 +72,5 @@ public struct RangeFloat
 		}
 	}
 
-	public override string ToString()
-	{
-		return String.Format("Range: {{0}, {1}}", Min, Max);
-	}
+	public override string ToString() => $"Range: {{{Min}, {Max}}}";
 }
