@@ -24,7 +24,7 @@ public class TownMain : MonoBehaviour
 	{
 		// orient the camera to a random location for funsies
 		Quaternion oldRotation = Camera.main.transform.rotation;
-		Quaternion targetRotation = Quaternion.Euler(Random.Range(-30f, 30f), Random.Range(0f, 360f), 0f);// Random.rotation;
+		Quaternion targetRotation = Quaternion.Euler(Random.Range(-30f, 30f), Random.Range(0f, 360f), 0f);
 
 		float alpha = 0f;
 		while(alpha < 1f)

@@ -70,6 +70,11 @@ public class LockPickGame : MonoBehaviour
 
 	private AudioSource pickAudio;
 
+	/// <summary>
+	/// See Difficulty property.
+	/// </summary>
+	private int difficulty;
+
 	private float solutionCenter;
 
 	private float solutionRange;
@@ -115,9 +120,14 @@ public class LockPickGame : MonoBehaviour
 		set { pick.MovementEnabled = cylinder.MovementEnabled = value; }
 	}
 
-	public void SetDifficulty(int difficulty)
+	public int Difficulty
 	{
-		InitLock(Mathf.Clamp(difficulty, 0, 100));
+		get { return difficulty; }
+		set
+		{
+			difficulty = Mathf.Clamp(value, 0, 100);
+			InitLock(difficulty);
+		}
 	}
 
 	/// <summary>
@@ -295,6 +305,8 @@ public class LockPickGame : MonoBehaviour
 	/// </summary>
 	private IEnumerator ProcessNewPick()
 	{
+		PickBreak?.Invoke(this, EventArgs.Empty);
+
 		yield return new WaitForSeconds(.5f);
 
 		animator.Play("A_LockPickGame_NewPick", baseLayer);
