@@ -6,12 +6,13 @@ using UnityEngine.UI;
 
 
 /// <summary>
-/// LockPickGame
+/// Provides all the functionality needed to play the lock pick mini game.
 /// </summary>
 [RequireComponent(typeof(Animator), typeof(AudioSource))]
 public class LockPickGame : MonoBehaviour
 {
 	/// <summary>
+	/// The background image of the lock pick game.
 	/// </summary>
 	[SerializeField]
 	[Tooltip("")]
@@ -45,49 +46,121 @@ public class LockPickGame : MonoBehaviour
 	[Tooltip("The sound effect that should be played when the lock is successfully picked.")]
 	private AudioClip unlockSoundEffect;
 
+	/// <summary>
+	/// The maximum "zero bias" the cylinder will have at different difficulties. If set to 1, lower difficulties will
+	/// be more likely to have their solution centered. If 0, there is a uniform chance for the solution to be located
+	/// anywhere in the semi-circle.
+	/// </summary>
 	[SerializeField]
+	[Tooltip(
+	"The maximum 'zero bias' the cylinder will have at different difficulties. If set to 1, lower difficulties will " +
+	"be more likely to have their solution centered. If 0, there is a uniform chance for the solution to be located " +
+	"anywhere in the semi-circle.")]
 	[Range(0, 1)]
 	private float maxSolutionZeroBias = .5f;
 
+	/// <summary>
+	/// The spectrum of size the solution will be based on difficulty. The larger value will be used for easy
+	/// difficulties, and the smaller value is used for harder difficulties.
+	/// </summary>
 	[SerializeField]
+	[Tooltip(
+	"The spectrum of size the solution will be based on difficulty. The larger value will be used for easy " +
+	"difficulties, and the smaller value is used for harder difficulties.")]
 	private RangeFloat solutionDifficultyRange = new RangeFloat(.01f, .1f);
 
+	/// <summary>
+	/// The spectrum of size the solution falloff will be based on difficulty. The larger value will be used for easy
+	/// difficulties, and the smaller value is used for harder difficulties. The solution falloff is the range in which
+	/// the pick will turn slightly, but not completely. The pick will turn more as it gets closer to the solution range.
+	/// </summary>
 	[SerializeField]
+	[Tooltip(
+	"The spectrum of size the solution falloff will be based on difficulty. The larger value will be used for easy " +
+	"difficulties, and the smaller value is used for harder difficulties. The solution falloff is the range in which " +
+	"the pick will turn slightly, but not completely. The pick will turn more as it gets closer to the solution range.")]
 	private RangeFloat solutionFalloffDifficultyRange = new RangeFloat(.1f, .25f);
 
+	/// <summary>
+	/// The spectrum of rate of degradation the pick will incur based on difficulty. The smaller value will be used 
+	/// for easy difficulties, and the larger value is used for harder difficulties.
+	/// </summary>
 	[SerializeField]
+	[Tooltip(
+	"The spectrum of rate of degradation the pick will incur based on difficulty. The smaller value will be used " +
+	"for easy difficulties, and the larger value is used for harder difficulties.")]
 	private RangeFloat pickDegradationDifficultyRange = new RangeFloat(.1f, 1f);
 
+	/// <summary>
+	/// The cylinder helper to maintain data and state.
+	/// </summary>
 	[SerializeField]
+	[Tooltip("Cylinder related data.")]
 	private Cylinder cylinder = new Cylinder();
 
+	/// <summary>
+	/// The pick helper to maintain data and state.
+	/// </summary>
 	[SerializeField]
+	[Tooltip("Lock pick related data.")]
 	private Pick pick = new Pick();
 
+	/// <summary>
+	/// The animator used to control animations for the entire lock pick game
+	/// </summary>
 	private Animator animator;
 
+	/// <summary>
+	/// The audio source used to play cylinder related sound effects
+	/// </summary>
 	private AudioSource cylinderAudio;
 
+	/// <summary>
+	/// The audio source used to play lock pick related sound effects
+	/// </summary>
 	private AudioSource pickAudio;
+
+	/// <summary>
+	/// The animation layer used to play animations on the game as a whole.
+	/// </summary>
+	private int baseLayer;
+
+	/// <summary>
+	/// The animation layer used to play the cylinder rotation.
+	/// </summary>
+	private int cylinderRotationLayer;
+
+	/// <summary>
+	/// The animation layer used to play the lock pick rotation.
+	/// </summary>
+	private int pickRotationLayer;
+
+	/// <summary>
+	/// The animation layer used to play feedback animations.
+	/// </summary>
+	private int feedbackLayer;
 
 	/// <summary>
 	/// See Difficulty property.
 	/// </summary>
 	private int difficulty;
 
+	/// <summary>
+	/// The very center of the solution range.
+	/// </summary>
 	private float solutionCenter;
 
+	/// <summary>
+	/// The range at which the pick can be in as a valid solution. This range extends in either direction of the
+	/// solution, so a range of "1" would result in an overall solution range of "2"
+	/// </summary>
 	private float solutionRange;
 
+	/// <summary>
+	/// The falloff range at which the pick may turn the cylinder partly, but not completely. As the pick is closer 
+	/// to the solution range, the cylinder will turn further. This falloff range exists on both sides of the solution.
+	/// </summary>
 	private float solutionFalloff;
-
-	private int baseLayer;
-
-	private int cylinderRotationLayer;
-
-	private int pickRotationLayer;
-
-	private int feedbackLayer;
 
 	/// <summary>
 	/// Event that is raised when a pick in game is broken.
@@ -104,10 +177,7 @@ public class LockPickGame : MonoBehaviour
 	/// </summary>
 	public Texture Background
 	{
-		set
-		{
-			background.texture = value;
-		}
+		set { background.texture = value; }
 	}
 
 	/// <summary>
@@ -120,6 +190,9 @@ public class LockPickGame : MonoBehaviour
 		set { pick.MovementEnabled = cylinder.MovementEnabled = value; }
 	}
 
+	/// <summary>
+	/// The difficulty the current lock pick game is set at. Changing this value will generate new solution parameters.
+	/// </summary>
 	public int Difficulty
 	{
 		get { return difficulty; }
@@ -152,8 +225,6 @@ public class LockPickGame : MonoBehaviour
 		cylinderRotationLayer = animator.GetLayerIndex("Cylinder Rotation");
 		pickRotationLayer     = animator.GetLayerIndex("Pick Rotation");
 		feedbackLayer         = animator.GetLayerIndex("Feedback");
-
-		InitLock(50);
 	}
 
 	/// <summary>
@@ -265,7 +336,8 @@ public class LockPickGame : MonoBehaviour
 		float offset = 0f - solutionCenter;
 		float zeroedPickRotation = Mathf.Abs(pick.Rotation + offset);
 
-		// normalize the pick rotation relative to the falloff range
+		// normalize the pick rotation relative to the falloff range and clamp to 0,1
+		// this value is the inverse of how far the pick can move
 		float normalizedPickRotation = zeroedPickRotation - solutionRange;
 		normalizedPickRotation = Mathf.Clamp(normalizedPickRotation * (1f / solutionFalloff), 0f, 1f);
 
@@ -285,7 +357,7 @@ public class LockPickGame : MonoBehaviour
 		// Apply zero bias to center point
 		float sign = solutionCenter >= 0 ? 1f : -1f;
 		float solutionCenterHeavyBias = Mathf.Pow(solutionCenter, 10);
-		float zeroBias = Mathf.Lerp(0f, maxSolutionZeroBias, normalizedDifficulty);
+		float zeroBias = Mathf.Lerp(maxSolutionZeroBias, 0f, normalizedDifficulty);
 		solutionCenter = Mathf.Lerp(Mathf.Abs(solutionCenter), solutionCenterHeavyBias, zeroBias) * sign;
 
 		// Get valid solution range
@@ -470,6 +542,8 @@ public class LockPickGame : MonoBehaviour
 			}
 
 			float cylinderRotationInput = Input.GetAxis("Rotate Cylinder") * rotationTensionSpeed;
+
+			// if no input, and the cylinder is not at resting position, then move back to center
 			if (cylinderRotationInput == 0f && Rotation != 0f)
 			{
 				cylinderRotationInput = -1f * rotationReturnSpeed;
@@ -643,8 +717,8 @@ public class LockPickGame : MonoBehaviour
 		/// to move the pick in a given direction.
 		/// </summary>
 		/// <returns>The drive delta value.</returns>
-		private float GetDriveDelta() => MovementEnabled ? Input.GetAxis("Rotate Pick") * rotationSpeed * Time.deltaTime 
-		                                                   : 0f;
+		private float GetDriveDelta() => 
+			MovementEnabled ? Input.GetAxis("Rotate Pick") * rotationSpeed * Time.deltaTime : 0f;
 
 		/// <summary>
 		/// EventArgs class to provide the state change event with appropriate data.

@@ -46,7 +46,7 @@ public class LockPickGameManager : Singleton<LockPickGameManager>
 		currentCamera.targetTexture = null;
 
 		// Create the mini game far from the scene. (1000 units down)
-		float yRot = currentCamera.transform.eulerAngles.y;
+		float yRot = UnityEngine.Random.Range(-30f, 30f);
 		lockPickGame = Instantiate(lockPickGamePrefab, new Vector3(0f, -1000f, 0f), Quaternion.Euler(0f, yRot, 0f));
 		lockPickGame.Difficulty = difficulty;
 		lockPickGame.name = lockPickGamePrefab.name;

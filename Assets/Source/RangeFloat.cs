@@ -19,6 +19,9 @@ public struct RangeFloat
 		r2 = value2;
 	}
 
+	/// <summary>
+	/// The smaller value of the range.
+	/// </summary>
 	public float Min
 	{
 		get
@@ -39,6 +42,9 @@ public struct RangeFloat
 		}
 	}
 
+	/// <summary>
+	/// The larger value of the range.
+	/// </summary>
 	public float Max
 	{
 		get
@@ -59,6 +65,9 @@ public struct RangeFloat
 		}
 	}
 
+	/// <summary>
+	/// The length of the range.
+	/// </summary>
 	public float Length
 	{
 		get
@@ -72,5 +81,9 @@ public struct RangeFloat
 		}
 	}
 
+	/// <summary>
+	/// ToString
+	/// </summary>
+	/// <returns>String representation of the range.</returns>
 	public override string ToString() => $"Range: {{{Min}, {Max}}}";
 }

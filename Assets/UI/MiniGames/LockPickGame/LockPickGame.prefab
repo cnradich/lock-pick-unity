@@ -963,16 +963,16 @@ MonoBehaviour:
   shakeSoundEffect: {fileID: 8300000, guid: d729d22e111468e4c8e2f87b7db17ab3, type: 3}
   breakSoundEffect: {fileID: 8300000, guid: 86be7c17b2e07864585a65fd2716830a, type: 3}
   unlockSoundEffect: {fileID: 8300000, guid: 7d9518d258a535a428405672f0d58d96, type: 3}
-  maxSolutionZeroBias: 0.514
+  maxSolutionZeroBias: 0.7
   solutionDifficultyRange:
     r1: 0.01
-    r2: 0.1
+    r2: 0.3
   solutionFalloffDifficultyRange:
     r1: 0.1
-    r2: 0.25
-  pickDegradationDifficultyRange:
-    r1: 0.1
     r2: 1
+  pickDegradationDifficultyRange:
+    r1: 0.5
+    r2: 5
   cylinder:
     rotationTensionSpeed: 1.5
     rotationReturnSpeed: 2.5
@@ -1087,7 +1087,7 @@ MonoBehaviour:
     m_Alignment: 3
     m_AlignByGeometry: 0
     m_RichText: 1
-    m_HorizontalOverflow: 0
+    m_HorizontalOverflow: 1
     m_VerticalOverflow: 0
     m_LineSpacing: 1
   m_Text: 0
