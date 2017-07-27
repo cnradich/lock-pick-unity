@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: 6a292184dab532248ba6b6e075f2d2f8
+timeCreated: 1501115277
+licenseType: Free
+MonoImporter:
+  serializedVersion: 2
+  defaultReferences:
+  - lockPickGamePrefab: {fileID: 114354910485351292, guid: 58ea0549fce872c4484b716a00921cd5,
+      type: 2}
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

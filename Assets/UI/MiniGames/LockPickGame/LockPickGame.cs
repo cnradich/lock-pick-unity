@@ -2,6 +2,7 @@
 using System.Collections;
 
 using UnityEngine;
+using UnityEngine.UI;
 
 
 /// <summary>
@@ -10,6 +11,12 @@ using UnityEngine;
 [RequireComponent(typeof(Animator), typeof(AudioSource))]
 public class LockPickGame : MonoBehaviour
 {
+	/// <summary>
+	/// </summary>
+	[SerializeField]
+	[Tooltip("")]
+	private RawImage background;
+
 	/// <summary>
 	/// The sound effect that should be played when the pick/lock is moving.
 	/// </summary>
@@ -78,6 +85,27 @@ public class LockPickGame : MonoBehaviour
 	private int feedbackLayer;
 
 	/// <summary>
+	/// Event that is raised when a pick in game is broken.
+	/// </summary>
+	public event EventHandler PickBreak;
+
+	/// <summary>
+	/// Event that is raised when the lock is successfully picked.
+	/// </summary>
+	public event EventHandler Unlock;
+
+	/// <summary>
+	/// Texture reference to set the background of the game.
+	/// </summary>
+	public Texture Background
+	{
+		set
+		{
+			background.texture = value;
+		}
+	}
+
+	/// <summary>
 	/// True if autonomous movement is enabled for the pick and cylinder. If not, they will not move from any
 	/// calculations in their update functions.
 	/// </summary>
@@ -87,9 +115,14 @@ public class LockPickGame : MonoBehaviour
 		set { pick.MovementEnabled = cylinder.MovementEnabled = value; }
 	}
 
+	public void SetDifficulty(int difficulty)
+	{
+		InitLock(Mathf.Clamp(difficulty, 0, 100));
+	}
+
 	/// <summary>
 	/// Helper function to allow Unity's animation system control movement via animation events.
-	/// Needs to use int because Unity doesn't support bool paramater for animation events.
+	/// Needs to use int because Unity doesn't support bool parameter for animation events.
 	/// </summary>
 	/// <param name="enabled">Whether to enable or disable. 0 - false. !=0 - true</param>
 	private void SetMovementEnabled(int enabled) => MovementEnabled = enabled != 0;
@@ -281,6 +314,7 @@ public class LockPickGame : MonoBehaviour
 	private IEnumerator ProcessUnlock()
 	{
 		yield return new WaitForSeconds(.5f);
+		Unlock?.Invoke(this, EventArgs.Empty);
 	}
 
 
