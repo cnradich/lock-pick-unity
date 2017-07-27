@@ -10,6 +10,34 @@ using UnityEngine;
 [RequireComponent(typeof(Animator), typeof(AudioSource))]
 public class LockPickGame : MonoBehaviour
 {
+	/// <summary>
+	/// The sound effect that should be played when the pick/lock is moving.
+	/// </summary>
+	[SerializeField]
+	[Tooltip("The sound effect that should be played when the pick/lock is moving.")]
+	private AudioClip moveSoundEffect;
+
+	/// <summary>
+	/// The sound effect that should be played when the pick/lock is shaking.
+	/// </summary>
+	[SerializeField]
+	[Tooltip("The sound effect that should be played when the pick/lock is shaking.")]
+	private AudioClip shakeSoundEffect;
+
+	/// <summary>
+	/// The sound effect that should be played when the pick breaks.
+	/// </summary>
+	[SerializeField]
+	[Tooltip("The sound effect that should be played when the pick breaks.")]
+	private AudioClip breakSoundEffect;
+
+	/// <summary>
+	/// The sound effect that should be played when the lock is successfully picked.
+	/// </summary>
+	[SerializeField]
+	[Tooltip("The sound effect that should be played when the lock is successfully picked.")]
+	private AudioClip unlockSoundEffect;
+
 	[SerializeField]
 	[Range(0, 1)]
 	private float maxSolutionZeroBias = .5f;
@@ -24,18 +52,16 @@ public class LockPickGame : MonoBehaviour
 	private RangeFloat pickDegradationDifficultyRange = new RangeFloat(.1f, 1f);
 
 	[SerializeField]
-	private Cylinder cylinder;
+	private Cylinder cylinder = new Cylinder();
 
 	[SerializeField]
-	private Pick pick;
+	private Pick pick = new Pick();
 
 	private Animator animator;
 
 	private AudioSource cylinderAudio;
 
 	private AudioSource pickAudio;
-
-	private int lockDifficulty;
 
 	private float solutionCenter;
 
@@ -51,13 +77,22 @@ public class LockPickGame : MonoBehaviour
 
 	private int feedbackLayer;
 
+	/// <summary>
+	/// True if autonomous movement is enabled for the pick and cylinder. If not, they will not move from any
+	/// calculations in their update functions.
+	/// </summary>
 	public bool MovementEnabled
 	{
 		get { return pick.MovementEnabled && cylinder.MovementEnabled; }
 		set { pick.MovementEnabled = cylinder.MovementEnabled = value; }
 	}
 
-	public void SetMovementEnabled(int enabled) => MovementEnabled = enabled != 0;
+	/// <summary>
+	/// Helper function to allow Unity's animation system control movement via animation events.
+	/// Needs to use int because Unity doesn't support bool paramater for animation events.
+	/// </summary>
+	/// <param name="enabled">Whether to enable or disable. 0 - false. !=0 - true</param>
+	private void SetMovementEnabled(int enabled) => MovementEnabled = enabled != 0;
 
 	/// <summary>
 	/// Initialize
@@ -66,7 +101,9 @@ public class LockPickGame : MonoBehaviour
 	{
 		InitComponents();
 
-		pick.OnStateChange += PickStateChange;
+		pick.StateChanged += OnPickStateChanged;
+		pick.Moved        += OnPickMoved;
+		cylinder.Unlock   += OnUnlock;
 
 		baseLayer             = animator.GetLayerIndex("Base Layer");
 		cylinderRotationLayer = animator.GetLayerIndex("Cylinder Rotation");
@@ -76,6 +113,9 @@ public class LockPickGame : MonoBehaviour
 		InitLock(50);
 	}
 
+	/// <summary>
+	/// Initializes the required component references.
+	/// </summary>
 	private void InitComponents()
 	{
 		animator = GetComponent<Animator>();
@@ -91,7 +131,6 @@ public class LockPickGame : MonoBehaviour
 	private void Update()
 	{
 		cylinder.MaxTensionRotation = DetermineMaxCylinderRotation();
-		//Debug.Log("Max: " + maxCylinderRotation);
 
 		cylinder.Update();
 		pick.Update();
@@ -102,29 +141,79 @@ public class LockPickGame : MonoBehaviour
 		animator.Play("A_LockCylinder_Rotate", cylinderRotationLayer, cylinder.Rotation);
 	}
 
-	private void PickStateChange(object sender, EventArgs args)
+	/// <summary>
+	/// Handles animation, audio and other changes required when the pick state changes.
+	/// </summary>
+	private void OnPickStateChanged(object sender, EventArgs args)
 	{
 		Pick.StateChangeEventArgs stateArgs = args as Pick.StateChangeEventArgs;
+
+		switch(stateArgs.OldState)
+		{
+			case Pick.StateType.Breaking:
+				pickAudio.loop = false;
+				pickAudio.Stop();
+				break;
+		}
 
 		switch(pick.State)
 		{
 			case Pick.StateType.Idle:
+				animator.Play("Empty", feedbackLayer);
+				break;
 			case Pick.StateType.Moving:
 				animator.Play("Empty", feedbackLayer);
 				break;
 			case Pick.StateType.Breaking:
+				pickAudio.clip = shakeSoundEffect;
+				pickAudio.loop = true;
+				pickAudio.Play();
 				animator.Play("A_LockPick_Shake", feedbackLayer);
 				break;
 			case Pick.StateType.Broken:
+				pickAudio.clip = breakSoundEffect;
+				pickAudio.Play();
 				animator.Play("A_LockPick_Break", feedbackLayer);
 				MovementEnabled = false;
-				StartCoroutine(RefreshPick());
+				StartCoroutine(ProcessNewPick());
 				break;
 		}
 	}
 
 	/// <summary>
-	/// Determines the maximum amount the cylinder can rotate form 0 to 1 considering the current pick rotation.
+	/// Handles the pick moved event. Plays audio at very specific intervals.
+	/// </summary>
+	private void OnPickMoved(object sender, EventArgs args)
+	{
+		Pick.MoveEventArgs moveArgs = args as Pick.MoveEventArgs;
+
+		int interval = 10;
+		int oldRot = (int)(moveArgs.OldRotation * 100) / interval;
+		int newRot = (int)(pick.Rotation * 100) / interval;
+
+		if (newRot != oldRot)
+		{
+			if(! (pickAudio.clip == moveSoundEffect && pickAudio.isPlaying))
+			{
+				pickAudio.clip = moveSoundEffect;
+				pickAudio.Play();
+			}
+		}
+	}
+
+	/// <summary>
+	/// Handles the unlock (success) event.
+	/// </summary>
+	private void OnUnlock(object sender, EventArgs args)
+	{
+		MovementEnabled = false;
+		cylinderAudio.clip = unlockSoundEffect;
+		cylinderAudio.Play();
+		StartCoroutine(ProcessUnlock());
+	}
+
+	/// <summary>
+	/// Determines the maximum amount the cylinder can rotate from 0 to 1 considering the current pick rotation.
 	/// </summary>
 	/// <returns>The maximum amount the cylinder can rotate under tension.</returns>
 	private float DetermineMaxCylinderRotation()
@@ -140,6 +229,10 @@ public class LockPickGame : MonoBehaviour
 		return 1f - normalizedPickRotation;
 	}
 
+	/// <summary>
+	/// Initializes the lock values based on its difficulty.
+	/// </summary>
+	/// <param name="difficulty">A 0 to 100 difficulty level for the lock.</param>
 	private void InitLock(int difficulty)
 	{
 		float normalizedDifficulty = Mathf.Clamp(difficulty, 0, 100) / 100f;
@@ -164,7 +257,10 @@ public class LockPickGame : MonoBehaviour
 		                              normalizedDifficulty);
 	}
 
-	private IEnumerator RefreshPick()
+	/// <summary>
+	/// Resets the pick, essentially creating a "new" one.
+	/// </summary>
+	private IEnumerator ProcessNewPick()
 	{
 		yield return new WaitForSeconds(.5f);
 
@@ -177,6 +273,14 @@ public class LockPickGame : MonoBehaviour
 		}
 		pick.Reset(pick.Degradation);
 		animator.speed = 1;
+	}
+
+	/// <summary>
+	/// Performs time sensitive functionality after the unlock event.
+	/// </summary>
+	private IEnumerator ProcessUnlock()
+	{
+		yield return new WaitForSeconds(.5f);
 	}
 
 
@@ -207,6 +311,11 @@ public class LockPickGame : MonoBehaviour
 		private float rotation = 0f;
 
 		/// <summary>
+		/// Event to be called when the cylinder has completely rotated.
+		/// </summary>
+		public event EventHandler Unlock;
+
+		/// <summary>
 		/// The possible states the cylinder can exist in.
 		/// </summary>
 		public enum StateType
@@ -214,6 +323,7 @@ public class LockPickGame : MonoBehaviour
 			Idle,
 			Moving,
 			Stuck,
+			Unlocked,
 		}
 
 		/// <summary>
@@ -269,11 +379,17 @@ public class LockPickGame : MonoBehaviour
 					float prevRotation = Rotation;
 					Rotation += driveDelta;
 
-					if(Rotation >= MaxTensionRotation && driveDelta > 0f)
+					if(Rotation >= MaxTensionRotation && driveDelta > 0f && MaxTensionRotation != 1f)
 					{
 						Rotation = prevRotation;
 						State = StateType.Stuck;
 						goto case StateType.Stuck;
+					}
+
+					if(Rotation >= 1f)
+					{
+						State = StateType.Unlocked;
+						Unlock?.Invoke(this, EventArgs.Empty);
 					}
 					break;
 
@@ -284,8 +400,15 @@ public class LockPickGame : MonoBehaviour
 						goto case StateType.Moving;
 					}
 					break;
-			}
 
+				case StateType.Unlocked: // Unlocked state
+					if(Rotation < 1f)
+					{
+						State = StateType.Idle;
+						goto case StateType.Idle;
+					}
+					break;
+			}
 		}
 
 		/// <summary>
@@ -317,7 +440,6 @@ public class LockPickGame : MonoBehaviour
 	[Serializable]
 	private class Pick
 	{
-		public event EventHandler OnStateChange;
 
 		/// <summary>
 		/// The speed at which rotating the pick will complete half a rotation per second.
@@ -330,6 +452,21 @@ public class LockPickGame : MonoBehaviour
 		/// See Rotation property.
 		/// </summary>
 		private float rotation = 0f;
+
+		/// <summary>
+		/// See State property.
+		/// </summary>
+		private StateType state = StateType.Idle;
+
+		/// <summary>
+		/// Event to be called any time the state of the pick changes.
+		/// </summary>
+		public event EventHandler StateChanged;
+
+		/// <summary>
+		/// Event to be called when the pick has moved.
+		/// </summary>
+		public event EventHandler Moved;
 
 		/// <summary>
 		/// The possible states the pick can exist in.
@@ -360,7 +497,19 @@ public class LockPickGame : MonoBehaviour
 		/// <summary>
 		/// The current state of the pick.
 		/// </summary>
-		public StateType State { get; private set; } = StateType.Idle;
+		public StateType State
+		{
+			get { return state; }
+			private set
+			{
+				StateType oldState = state;
+				state = value;
+				if(oldState != state)
+				{
+					StateChanged?.Invoke(this, new StateChangeEventArgs { OldState = oldState });
+				}
+			}
+		}
 
 		/// <summary>
 		/// The current rotation of the pick, from -1 to 1.
@@ -388,13 +537,7 @@ public class LockPickGame : MonoBehaviour
 			set
 			{
 				if(State == StateType.Broken) { return; } // ignore if the pick is already broken
-				StateType oldState = State;
 				State = value ? StateType.Breaking : StateType.Idle;
-
-				if(oldState != State)
-				{
-					OnStateChange?.Invoke(this, new StateChangeEventArgs { OldState = oldState });
-				}
 			}
 		}
 
@@ -412,7 +555,6 @@ public class LockPickGame : MonoBehaviour
 					if(driveDelta != 0f)
 					{
 						State = StateType.Moving;
-						OnStateChange?.Invoke(this, new StateChangeEventArgs { OldState = oldState });
 						goto case StateType.Moving;
 					}
 					break;
@@ -421,10 +563,11 @@ public class LockPickGame : MonoBehaviour
 					if(driveDelta == 0f)
 					{
 						State = StateType.Idle;
-						OnStateChange?.Invoke(this, new StateChangeEventArgs { OldState = oldState });
 						break;
 					}
+					MoveEventArgs args = new MoveEventArgs { OldRotation = Rotation };
 					Rotation += driveDelta;
+					Moved?.Invoke(this, args);
 					break;
 
 				case StateType.Breaking: // Breaking state
@@ -432,12 +575,7 @@ public class LockPickGame : MonoBehaviour
 					if(Life <= 0f)
 					{
 						State = StateType.Broken;
-						OnStateChange?.Invoke(this, new StateChangeEventArgs { OldState = oldState });
 					}
-					break;
-
-				case StateType.Broken: // Broken state
-					//Reset(Degradation);
 					break;
 			}
 		}
@@ -463,9 +601,14 @@ public class LockPickGame : MonoBehaviour
 		                                                   : 0f;
 
 		/// <summary>
-		/// EventArgs class to provide the state change event with appropriate data. Namely the old state.
+		/// EventArgs class to provide the state change event with appropriate data.
 		/// </summary>
 		public class StateChangeEventArgs : EventArgs { public StateType OldState; }
+
+		/// <summary>
+		/// EventArgs class to provide the move event with appropriate data.
+		/// </summary>
+		public class MoveEventArgs : EventArgs { public float OldRotation; }
 
 	} // class Pick
 }
