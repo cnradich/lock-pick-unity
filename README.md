@@ -1,6 +1,6 @@
 # LockPick_Unity
 ### Description
-![alt text](https://raw.githubusercontent.com/yoyohobo665/LockPick_Unity/master/Media/ScreenShot.png)
+![alt text](https://raw.githubusercontent.com/radichc/LockPick_Unity/master/Media/ScreenShot.png)
 
 This is a recreation of the lock-pick mini-game from Bethesda Softworks games Fallout 4 and Skyrim.
 
