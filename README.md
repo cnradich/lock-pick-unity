@@ -1,10 +1,11 @@
 # LockPick_Unity
 ### Description
 ![alt text](https://raw.githubusercontent.com/yoyohobo665/LockPick_Unity/master/Media/ScreenShot.png)
+
 This is a recreation of the lock-pick mini-game from Bethesda Softworks games Fallout 4 and Skyrim.
 
 ### Attribution
-**Sound Effects** - http://soundbible.com/
+**Sound Effects** - http://soundbible.com/  
 **Environent Texture** - http://texturify.com/stock-photo/old-town-10585.html
 
 All other assets were developed by me and fall under the MIT license.
