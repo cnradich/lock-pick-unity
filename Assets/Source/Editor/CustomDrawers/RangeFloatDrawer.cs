@@ -8,7 +8,9 @@ public class RangeFloatDrawer : PropertyDrawer
 
 	public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
 	{
-		position.height = EditorGUIUtility.singleLineHeight;
+
+		int lines = EditorGUIUtility.wideMode ? 1 : 2;
+		position.height = lines * EditorGUIUtility.singleLineHeight;
 
 		SerializedProperty r1Prop = property.FindPropertyRelative("r1");
 		SerializedProperty r2Prop = property.FindPropertyRelative("r2");
@@ -25,6 +27,7 @@ public class RangeFloatDrawer : PropertyDrawer
 
 	public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
 	{
-		return EditorGUIUtility.singleLineHeight;
+		int lines = EditorGUIUtility.wideMode ? 1 : 2;
+		return lines * EditorGUIUtility.singleLineHeight;
 	}
 }
